@@ -51,6 +51,7 @@ public class AuthenticationService {
             }
 
             if (passwordEncoder.matches(password, userOptional.get().getPassword())) {
+                user.updateLastLogin();
                 return userOptional;
             } else {
                 user.increamentFailedLogin();

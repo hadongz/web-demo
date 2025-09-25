@@ -47,7 +47,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (!jwtService.isValidAccessToken(token, username)) {
+        if (!jwtService.isValidToken(token, username)) {
             throw new JwtException("Token is not valid");
         }
 

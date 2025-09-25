@@ -101,7 +101,7 @@ public class AuthenticationController {
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request, HttpServletRequest httpRequest) {
         String username = (String) httpRequest.getAttribute("username");
 
-        if (!jwtService.isValidRefreshToken(request.getRefreshToken(), username)) {
+        if (!jwtService.isValidToken(request.getRefreshToken(), username)) {
             ApiErrorResponse errorRes = ApiErrorResponse.of(
                     "Invalid token",
                     "Invalid token",

@@ -14,9 +14,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional
 public class UserService {
+
     private final UserRepository userRepository;
 
     public Optional<User> getUserByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public void verifiedUserEmail(User user) {
+        user.setEmailVerified(true);
     }
 }
