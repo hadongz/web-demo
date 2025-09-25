@@ -14,6 +14,7 @@ public class AuthResponse {
     private Long userId;
     private String username;
     private String token;
+    private String refreshToken;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;
@@ -28,13 +29,14 @@ public class AuthResponse {
          .build();
     }
 
-    public static AuthResponse successWithToken(String message, Long userId, String username, String token) {
+    public static AuthResponse successWithToken(String message, Long userId, String username, String token, String refreshToken) {
         return AuthResponse
          .builder()
          .message(message)
          .userId(userId)
          .username(username)
          .token(token)
+         .refreshToken(refreshToken)
          .timestamp(LocalDateTime.now())
          .build();
     }

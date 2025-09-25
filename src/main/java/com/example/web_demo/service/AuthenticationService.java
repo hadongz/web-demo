@@ -18,33 +18,38 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional
 public class AuthenticationService {
-    
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public User register(String username, String password) {
+    public User register(String username, String email, String password) {
         if (userRepository.existsByUsername(username)) {
             throw new UserAlreadyExistsException("Username already exists");
         }
 
+        if (userRepository.existsByEmail(email)) {
+            throw new UserAlreadyExistsException("Email already exists");
+        }
+
         User user = User.builder()
-            .username(username)
-            .password(passwordEncoder.encode(password))
-            .build();
+                .username(username)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .build();
 
         return userRepository.save(user);
     }
 
     public Optional<User> login(String username, String password) {
         Optional<User> userOptional = userRepository.findByUsername(username);
-        
+
         if (userOptional.isPresent()) {
             User user = userOptional.get();
 
             if (user.isAccountLocked()) {
                 throw new AccountLockedException();
             }
-            
+
             if (passwordEncoder.matches(password, userOptional.get().getPassword())) {
                 return userOptional;
             } else {
@@ -52,7 +57,7 @@ public class AuthenticationService {
                 throw new WrongPasswordException();
             }
         }
-        
+
         return Optional.empty();
     }
 }

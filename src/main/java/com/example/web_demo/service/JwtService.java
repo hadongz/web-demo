@@ -1,60 +1,86 @@
 package com.example.web_demo.service;
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.example.web_demo.entity.User;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
-@Slf4j
 public class JwtService {
 
-    @Value("${jwt.secret:1234567810}")
-    private String jwtSecret;
+    @Value("${app.jwt.secret}")
+    private String secretKey;
+    @Value("${app.jwt.access-token-expiration}")
+    private long accessTokenExpire;
+    @Value("${app.jwt.refresh-token-expiration}")
+    private long refreshTokenExpire;
 
-    @Value("${jwt.expiration:1800}")
-    private int jwtExpirationInSeconds;
-
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    private SecretKey getSigninKey() {
+        byte[] keyBytes = Decoders.BASE64URL.decode(secretKey);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createToken(Long userId, String username) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtExpirationInSeconds * 1000L);
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("username", username);
-
+    public String generateAccessToken(User user) {
         return Jwts.builder()
-                .claims(claims)
-                .subject(username)
-                .issuedAt(now)
-                .expiration(expiry)
-                .signWith(getSigningKey())
+                .subject(user.getUsername())
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + accessTokenExpire))
+                .signWith(getSigninKey())
                 .compact();
     }
 
-    public Boolean isTokenValid(String token) {
-        Claims claims = getClaims(token);
-        Date expirationDate = claims.getExpiration();
-        return expirationDate.before(new Date());
+    public String generateRefreshToken(User user) {
+        return Jwts.builder()
+                .subject(user.getUsername())
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + refreshTokenExpire))
+                .signWith(getSigninKey())
+                .compact();
     }
 
-    private Claims getClaims(String token) {
-        return Jwts.parser()
-            .decryptWith(getSigningKey())
-            .build()
-            .parseSignedClaims(token)
-            .getPayload();
+    public Boolean isValidAccessToken(String token, String username) {
+        String tokenUsername = getUsernameFromToken(token);
+        return (username.equals(tokenUsername) && !isTokenExpired(token));
+    }
+
+    public Boolean isValidRefreshToken(String token, String username) {
+        String tokenUsername = getUsernameFromToken(token);
+        return (username.equals(tokenUsername)) && !isTokenExpired(token);
+    }
+
+    public String getUsernameFromToken(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    private Boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
+    }
+
+    private Date extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
+    }
+
+    private <T> T extractClaim(String token, Function<Claims, T> resolver) {
+        Claims claims = extractAllClaims(token);
+        return resolver.apply(claims);
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts
+                .parser()
+                .verifyWith(getSigninKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
